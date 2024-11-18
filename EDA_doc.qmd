@@ -1,0 +1,79 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+## **Table of Contents**
+
+-   **Data Dictionary**
+
+-   **Data Understanding and Loading**
+
+-   **Exploratory Analysis Before Data Cleaning**
+
+-   **Handling Missing Values for Numerical Variables**
+
+-   **Handling Missing Values for Categorical Variables**
+
+-   **Handling Missing Values with Special Characters**
+
+-   **Outlier Treatment**
+
+-   **Exploratory Analysis After Data Cleaning**
+
+-   **Univariate Exploratory Analysis**
+
+-   **Interpreting Histograms — Skewness**
+
+-   **Interpreting Histograms — Additional Elements**
+
+-   **Interpreting Boxplots — Quartiles and Interquartile Range**
+
+-   **Analyzing and Interpreting Boxplots — Additional Elements**
+
+-   **Multivariate Exploratory Analysis**
+
+-   **Interpreting Correlation Maps**
+
+-   **Scatter Plots — Non-Trivial Patterns**
+
+### Libraries
+
+```{r}
+library(tidyverse)
+library(janitor)
+```
+
+### Import Data
+
+```{r}
+# import data
+avocado_data <- read_csv("data/avocado.csv") %>% 
+  select(-1) %>% clean_names()
+```
+
+### Understanding the Structure of the Data
+
+```{r}
+str(avocado_data)
+```
+
+### Quick glimpse of data
+
+```{r}
+glimpse(avocado_data)
+```
+
+### Quick Summary Statistics
+
+```{r}
+summary(avocado_data)
+```
+
+### Missing Values
+
+```{r}
+colSums(is.na(avocado_data))
+sum(is.na(avocado_data))
+```

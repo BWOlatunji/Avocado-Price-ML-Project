@@ -22,7 +22,7 @@ Some relevant columns in the dataset:
 
 -   `4770` - Total number of avocados with PLU 4770 sold
 
-### More information on Avocado Size & Price Look Up (PLU) Code 
+### More information on Avocado Size & Price Look Up (PLU) Code
 
 \
 Small/Medium Hass Avocado (\~3-5oz avocado) \| **#4046 Avocado**
