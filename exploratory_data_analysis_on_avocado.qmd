@@ -1,0 +1,353 @@
+---
+title: "Exploratory Data Analysis on Avocado data set"
+format: docx
+editor: visual
+execute: 
+  warning: false
+  eval: true
+  echo: false
+---
+
+## Exploratory Data Analysis on Avocado data set
+
+The dataset contains 18,249 rows and 14 columns, including:
+
+-   **Date**: Date of observation.
+
+-   **average_price**: Price of a single avocado.
+
+-   **Total Volume**: Total volume of avocados sold.
+
+-   **4046, 4225, 4770**: PLU codes for different sizes of avocados.
+
+-   **Total Bags, Small Bags, Large Bags, XLarge Bags**: Number of avocados sold in bags of different sizes.
+
+-   **type**: Type of avocado (conventional or organic).
+
+-   **year**: Year of observation.
+
+-   **region**: Region where the data was recorded.
+
+
+
+### Load necessary libraries
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(janitor)
+library(tidytext)  # for reorder_within()
+library(skimr)
+```
+
+### Import Data
+
+```{r}
+#| output: false
+# import data
+# avocado_data <- read_csv("data/avocado.csv") 
+# avocado_data 
+# 
+# avocado_data <- avocado_data %>% select(-1)
+# 
+# avocado_data <- avocado_data %>% clean_names()
+
+
+avocado_data <- read_csv("data/avocado.csv") %>%
+  select(-1) %>% clean_names()
+
+head(avocado_data,5)
+```
+
+### Understanding the Structure of the Data
+
+```{r}
+str(avocado_data)
+```
+
+### Quick glimpse of data
+
+```{r}
+glimpse(avocado_data)
+```
+
+### Quick Summary Statistics
+
+```{r}
+summary(avocado_data)
+```
+
+### Skim a data frame, getting useful summary statistics
+
+```{r}
+skim(avocado_data)
+```
+
+### Missing Values
+
+```{r}
+colSums(is.na(avocado_data))
+sum(is.na(avocado_data))
+```
+
+
+### Exploratory Data Analysis Questions:
+
+**1. What is the distribution of avocado prices?**
+
+***Option (a) - Histogram***
+
+-   A histogram is a bar chart that groups data into bins, showing the frequency or count of values within each bin.
+
+```{r}
+# Avocado colors - #4a7337,#6b8c21,#ddd48f,#cda989, #704012
+ggplot(avocado_data, aes(x = average_price)) +
+  geom_histogram(bins = 30,fill = "#4a7337", color="white", alpha = 0.5) +
+  labs(title = "Distribution of Avocado Prices", x = "Average Price", y = "Frequency") +
+  theme_minimal()
+
+```
+
+***Option (b) - Density plot***
+
+-   A density plot displays the proportion of data points within each range, providing a continuous and visually appealing estimate of the distribution, particularly useful for larger datasets. It uses a smooth curve to represent the data distribution.
+
+-   They are created using kernel density estimation (KDE), which smooths the data to show its underlying shape without the abrupt transitions seen in histograms.
+
+```{r}
+ggplot(avocado_data, aes(x = average_price)) +
+  geom_density(fill = "#4a7337", alpha = 0.5) +
+  ggtitle("Distribution of Avocado Prices") +
+  theme_minimal()
+```
+
+**Boxplot**
+
+![](images/clipboard-1262197695.png)
+
+```{r}
+ggplot(avocado_data, 
+       aes(x = average_price)) +
+  geom_boxplot(fill= "#704012") +
+  ggtitle("Distribution of Avocado Prices") +
+  theme_minimal()
+```
+
+**2. How does the total volume of avocados sold vary over time?**
+
+```{r}
+ggplot(avocado_data, aes(x = date, y = total_volume, color = type)) +
+  geom_line() +
+  scale_y_continuous(labels = scales::label_number(scale = 1e-6, suffix = "M")) + 
+  labs(title = "Total Volume of Avocados Sold Over Time", x = "Date", y = "Total Volume") +
+  theme_minimal()
+```
+
+***Break the display using `facet_wrap`***
+
+```{r}
+ggplot(avocado_data, aes(x = date, y = total_volume, color = type)) +
+  geom_line() +
+  scale_y_continuous(labels = scales::label_number(scale = 1e-6, suffix = "M")) + 
+  labs(title = "Total Volume of Avocados Sold Over Time", x = "Date", y = "Total Volume") +
+  theme_minimal()+
+  facet_wrap(vars(type))
+```
+
+***Free the y-axis for each facet***
+
+```{r}
+ggplot(avocado_data, aes(x = date, y = total_volume, color = type)) +
+  geom_line() +
+  scale_y_continuous(labels = scales::label_number(scale = 1e-6, suffix = "M")) + 
+  labs(title = "Total Volume of Avocados Sold Over Time", x = "Date", y = "Total Volume") +
+  theme_minimal()+
+  # Free the y-axis for each facet
+  facet_wrap(vars(type), scales = "free_y",nrow = 1)
+```
+
+**3. How do average prices vary across regions?**
+
+```{r}
+ggplot(avocado_data, aes(x = region, y = average_price, fill = region)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(title = "Average Price of Avocados Across Regions", x = "Region", y = "Average Price")+
+  theme(legend.position = "none")
+```
+
+***Arrange the box plots using the median of the average price for each region***
+
+```{r}
+
+# Calculate median prices by region and arrange in ascending order
+median_prices <- avocado_data %>%
+  group_by(region) %>%
+  summarize(median_price = median(average_price, na.rm = TRUE)) %>%
+  arrange(desc(median_price))
+
+# Reorder the regions factor levels based on the median price
+avocado_data <- avocado_data %>%
+  mutate(region = factor(region, levels = median_prices$region))
+
+# Create the boxplot with regions ordered by their median price
+ggplot(avocado_data, aes(x = region, y = average_price, fill = region)) +
+  geom_boxplot() +
+  scale_fill_viridis_d(option = "C") +
+  labs(title = "Average Price of Avocados Across Regions",
+       x = "Region", y = "Average Price") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme(legend.position = "none")
+
+```
+**4. How do average prices vary across regions based on the type of avocado?**
+```{r}
+# library(tidytext)  # for reorder_within()
+
+# Calculate median prices by region and type
+median_prices_by_type <- avocado_data %>%
+  group_by(region, type) %>%
+  summarize(median_price = median(average_price, na.rm = TRUE))
+
+# Reorder regions within each type
+avocado_data <- avocado_data %>%
+  mutate(region = reorder_within(region, average_price, type))
+
+# Create the boxplot with regions ordered by their median price and facet by avocado type
+ggplot(avocado_data, aes(x = region, y = average_price, fill = region)) +
+  geom_boxplot() +
+  scale_fill_viridis_d(option = "C") +
+  labs(title = "Average Price of Avocados Across Regions by Type",
+       x = "Region", y = "Average Price") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme(legend.position = "none") +
+  facet_wrap(vars(type), scales = "free_x") +  # Facet by avocado type and free x-axis scale for better display
+  scale_x_reordered()  # Apply reordering
+
+
+```
+
+**5. What are the trends in avocado sales over the years for each type?**
+
+```{r}
+ggplot(avocado_data, aes(x = year, y = total_volume, color = type)) +
+  geom_line(stat = "summary", fun = "mean") +
+  labs(title = "Trends in Avocado Sales Over the Years by Type", x = "Year", y = "Average Total Volume")
+```
+
+**6. Are there seasonal patterns in the average price of avocados?**
+
+```{r}
+avocado_data <- avocado_data %>%
+  mutate(month = month(date, label = TRUE, abbr = TRUE))
+
+
+ggplot(avocado_data, aes(x = month, y = average_price, color = type)) +
+  geom_boxplot() +
+  labs(title = "Seasonal Patterns in Average Price of Avocados", x = "Month", y = "Average Price", color = "Avocado Type") + # Change legend title
+  theme(legend.key = element_rect(fill = NA))
+```
+
+**7. Which regions have the highest and lowest average avocado prices?**
+
+```{r}
+region_avg_price <- avocado_data %>%
+  group_by(region) %>%
+  summarize(avg_price = mean(average_price)) %>%
+  arrange(desc(avg_price))
+
+top_regions <- head(region_avg_price, 5)
+bottom_regions <- tail(region_avg_price, 5)
+
+top_regions
+bottom_regions
+```
+
+**8. How are bag sizes (small, large, x-large) distributed by different type?**
+
+```{r}
+avocado_bag_sizes <- avocado_data %>%
+  select(type, small_bags, large_bags,x_large_bags) %>%
+  pivot_longer(cols = c(small_bags, large_bags, x_large_bags), names_to = "bag_size", values_to = "volume")  
+
+avocado_bag_sizes <- avocado_bag_sizes %>%
+  mutate(bag_size = case_when(
+    bag_size == "small_bags" ~ "Small Bags",
+    bag_size == "large_bags" ~ "Large Bags",
+    bag_size == "x_large_bags" ~ "X Large Bags",
+    .default = "others"))
+           
+avocado_bag_sizes <- avocado_bag_sizes %>% 
+  mutate(bag_size =  factor(bag_size,
+         levels = c("Small Bags", "Large Bags", "X Large Bags")))
+
+
+avocado_bag_sizes %>%
+  ggplot(aes(x = type, y = volume, fill = bag_size)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+   theme(
+    axis.text.x = element_blank(), # Removes x-axis labels
+    axis.ticks.x = element_blank() # Removes x-axis ticks for cleanliness
+  ) +
+  scale_y_continuous(labels = scales::label_number(scale = 1e-6, suffix = "M")) + 
+  labs(title = "Bag Sizes Distribution By Types", x = "Avocado Type", y = "Proportion of Volume", fill = "Bag Size")+
+  facet_wrap(vars(type),scales = "free_y")
+```
+
+**9. How are avocado sizes (x4046, x4225, x4770) distributed by different type?**
+
+```{r}
+avocado_sizes_type <- avocado_data %>%
+  select(date, type, x4046,x4225,x4770) %>%
+  pivot_longer(cols = c(x4046,x4225,x4770), names_to = "avo_size", values_to = "avo_count")  %>% 
+  group_by(date, type, avo_size) %>% 
+  summarise(total_count = sum(avo_count))
+
+avocado_sizes_type <- avocado_sizes_type %>%
+  mutate(avo_size = case_when(
+    avo_size == "x4046" ~ "Small/Medium Hass Avocado",
+    avo_size == "x4225" ~ "Large Hass Avocado",
+    avo_size == "x4770" ~ "Extra Large Hass Avocado",
+    .default = "others"))
+           
+avocado_sizes_type <- avocado_sizes_type %>% 
+  mutate(avo_size =  factor(avo_size,
+         levels = c("Small/Medium Hass Avocado", "Large Hass Avocado", "Extra Large Hass Avocado")))
+
+
+avocado_sizes_type %>%
+  ggplot(aes(x = type, y = total_count, fill = avo_size)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+   theme(
+    axis.text.x = element_blank(), # Removes x-axis labels
+    axis.ticks.x = element_blank() # Removes x-axis ticks for cleanliness
+  ) +
+  scale_y_continuous(labels = scales::label_number(scale = 1e-6, suffix = "M")) + 
+  labs(title = "Bag Sizes Distribution By Types", x = "Avocado Type", y = "Total Count", fill = "Hass Avocado Sizes")+
+  facet_wrap(vars(type),scales = "free_y")
+```
+
+**10. How are total number of avocado sizes (x4046, x4225, x4770) sold over time?**
+
+```{r}
+avocado_sizes_type %>% 
+  ggplot(aes(x = date, y = total_count, color = avo_size)) +
+  geom_line() +
+  scale_y_continuous(labels = scales::label_number(scale = 1e-6, suffix = "M")) + 
+  labs(title = "Total Volume of Avocados Sold Over Time", x = "Date", y = "Total Volume", color = "Hass Avocado Sizes") +
+  theme_minimal()+
+  # Free the y-axis for each facet
+  facet_wrap(vars(avo_size), scales = "free_y",nrow = 1)
+```
+
+**11. Is there a correlation between avocado sales volumes and prices?**
+
+```{r}
+ggplot(avocado_data, aes(x = average_price, y = total_volume)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(title = "Correlation Between Avocado Sales Volume and Prices", x = "Average Price", y = "Total Volume")
+
+```

@@ -1,56 +1,33 @@
 ---
-title: "Untitled"
+title: "Exploratory Data Analysis"
 format: html
 editor: visual
 ---
-
-## **Table of Contents**
-
--   **Data Dictionary**
-
--   **Data Understanding and Loading**
-
--   **Exploratory Analysis Before Data Cleaning**
-
--   **Handling Missing Values for Numerical Variables**
-
--   **Handling Missing Values for Categorical Variables**
-
--   **Handling Missing Values with Special Characters**
-
--   **Outlier Treatment**
-
--   **Exploratory Analysis After Data Cleaning**
-
--   **Univariate Exploratory Analysis**
-
--   **Interpreting Histograms — Skewness**
-
--   **Interpreting Histograms — Additional Elements**
-
--   **Interpreting Boxplots — Quartiles and Interquartile Range**
-
--   **Analyzing and Interpreting Boxplots — Additional Elements**
-
--   **Multivariate Exploratory Analysis**
-
--   **Interpreting Correlation Maps**
-
--   **Scatter Plots — Non-Trivial Patterns**
 
 ### Libraries
 
 ```{r}
 library(tidyverse)
 library(janitor)
+library(skimr)
+library(moments)
 ```
 
 ### Import Data
 
 ```{r}
 # import data
-avocado_data <- read_csv("data/avocado.csv") %>% 
+# avocado_data <- read_csv("data/avocado.csv") 
+# avocado_data 
+# 
+# avocado_data <- avocado_data %>% select(-1)
+# 
+# avocado_data <- avocado_data %>% clean_names()
+
+
+avocado_data <- read_csv("data/avocado.csv") %>%
   select(-1) %>% clean_names()
+
 ```
 
 ### Understanding the Structure of the Data
@@ -71,9 +48,193 @@ glimpse(avocado_data)
 summary(avocado_data)
 ```
 
+### Skim a data frame, getting useful summary statistics
+
+```{r}
+skim(avocado_data)
+```
+
 ### Missing Values
 
 ```{r}
 colSums(is.na(avocado_data))
 sum(is.na(avocado_data))
 ```
+
+### Distribution Plot for Numerical values
+
+**Density plot**
+
+```{r}
+ggplot(avocado_data, aes(x = average_price)) +
+  geom_density(fill = "#4a7337", alpha = 0.5) +
+  ggtitle("Distribution Price") +
+  theme_minimal()
+```
+
+**Boxplot**
+
+```{r}
+ggplot(avocado_data, 
+       aes(x = average_price)) +
+  geom_boxplot(fill= "#704012") +
+  ggtitle("Distribution Price") +
+  theme_minimal()
+```
+
+**Histogram**
+
+```{r}
+ggplot(avocado_data, aes(x = average_price)) +
+  geom_histogram(fill = "#4a7337", color="white", alpha = 0.5) +
+  ggtitle("Distribution Price") +
+  theme_minimal()
+
+```
+
+Showing the mean and median in a distribution plot
+
+```{r}
+ggplot(avocado_data, aes(x = average_price)) +
+  geom_histogram(fill = "#4a7337", bins = 30, alpha = 0.5) +
+  geom_vline(aes(xintercept = mean(average_price)), 
+             color = "blue", linetype = "dashed", size = 1) +  # Mean line
+  geom_vline(aes(xintercept = median(average_price)), 
+             color = "red", linetype = "dashed", size = 1) +   # Median line
+  ggtitle("Distribution of Price") +
+  theme_minimal()
+```
+
+### **Categorical Data Analysis**
+
+-   Year
+
+```{r}
+avocado_data %>% 
+  ggplot(aes(year))+
+  geom_bar()
+```
+
+-   Avocado Types
+
+```{r}
+avocado_data %>% 
+  ggplot(aes(type))+
+  geom_bar()
+
+```
+
+### Bivariate data analysis
+
+```{r}
+ggplot(avocado_data, aes(x = average_price, 
+                         y = type)) +
+  geom_boxplot(fill = c("#704012", "#4a7337")) +
+  theme_minimal()
+```
+
+-   Average Price vs Year
+
+```{r}
+ggplot(avocado_data, aes(x = average_price, 
+                         y = factor(
+                           as.character(year)
+                           )
+                         )
+       ) +
+  geom_boxplot(fill = c("#704012", "#4a7337", "#6b8c21", "#ddd48f")) +
+  theme_minimal()+
+  labs(x="Average Price", y="Year")
+```
+
+-   Average Price vs Date
+
+```{r}
+avocado_data %>% 
+  ggplot(aes(x = date, y = average_price)) + 
+  geom_line(color = "#012f49") +  
+  labs(title = "AveragePrice vs Date", x = "Date", y = "Average Price") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))  
+```
+
+-   *Break dates down into months*
+
+```{r}
+
+avocado_data %>% 
+  ggplot(aes(x = date, y = average_price)) + 
+  geom_line(color = "#012f49") +  # You can adjust the color as needed
+  labs(title = "AveragePrice vs Date", x = "Date", y = "AveragePrice") +
+  scale_x_date(date_labels = "%Y-%m", date_breaks = "6 month") +  # Break the x-axis by months
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels for better readability
+        plot.title = element_text(hjust = 0.5))  # Center the title
+```
+
+Outliers Treatment
+
+```{r}
+
+Q1 <- quantile(avocado_data$average_price, 0.25)  # Calculate Q1 (25th percentile)
+Q3 <- quantile(avocado_data$average_price, 0.75)  # Calculate Q3 (75th percentile)
+
+# Calculate IQR
+IQR <- Q3 - Q1
+
+# Set the lower and upper limits for identifying outliers
+lower_limit <- Q1 - 1.5 * IQR
+upper_limit <- Q3 + 1.5 * IQR
+
+# Filter out the outliers
+avocado_data_filtered <- avocado_data %>%
+  filter(average_price >= lower_limit & average_price <= upper_limit)
+
+# View the filtered data frame
+avocado_data_filtered
+```
+
+Avera
+
+```{r}
+ggplot(avocado_data_filtered, aes(x = average_price, 
+                         y = factor(
+                           as.character(year)
+                           )
+                         )
+       ) +
+  geom_boxplot(fill = c("#704012", "#4a7337", "#6b8c21", "#ddd48f")) +
+  theme_minimal()+
+  labs(x="Average Price", y="Year")
+```
+
+```{r}
+ggplot(avocado_data_filtered, aes(x = average_price)) +
+  geom_histogram(fill = "#4a7337",bins = 30, alpha = 0.5) +
+  ggtitle("Distribution Price") +
+  theme_minimal()
+```
+
+Skewness of Data
+
+```{r}
+skewness(avocado_data$average_price)
+```
+
+Skewness on a plot
+
+```{r}
+ggplot(avocado_data_filtered, aes(x = average_price)) +
+  geom_histogram(fill = "#4a7337", bins = 30, alpha = 0.5) +
+  geom_vline(aes(xintercept = mean(average_price)), 
+             color = "blue", linetype = "dashed", size = 1) +  # Mean line
+  geom_vline(aes(xintercept = median(average_price)), 
+             color = "red", linetype = "dashed", size = 1) +   # Median line
+  ggtitle("Distribution of Price") +
+  theme_minimal()
+```
+If the mean is greater than the median, the distribution is right-skewed, or positively skewed and vice versa.
+
+
+
+

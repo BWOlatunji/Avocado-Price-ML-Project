@@ -35,6 +35,7 @@ ggplot(avocado_data, aes(x = average_price)) +
   ggtitle("Distribution Price") +
   theme_minimal()
 
+
 ggplot(avocado_data, 
        aes(x = average_price)) +
   geom_boxplot(fill= "#704012") +
